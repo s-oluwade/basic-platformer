@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
 public class Player : MonoBehaviour
 {
@@ -15,10 +17,12 @@ public class Player : MonoBehaviour
     [SerializeField] private bool wallJump = false;
 
     // Defaults from Inspector
-    [SerializeField] private LayerMask jumpableGround;
-    [SerializeField] private LayerMask wall;
+    [SerializeField] private LayerMask ground;
+    [SerializeField] private LayerMask wallLayer;
+    [SerializeField] private LayerMask worldObjectLayer;
     [SerializeField] private float moveSpeed = 10f;
     [SerializeField] private float jumpForce = 15f;
+    [SerializeField] private TextMeshProUGUI controllerGuides;
 
     // Constants
     private readonly float defaultMoveSpeed = 10f;      // Must match moveSpeed
@@ -35,6 +39,7 @@ public class Player : MonoBehaviour
 
     // Dash Variables
     int dash_direction = 1;
+    float rayLength = 5f;
 
     // Wall Slide and Wall Jump Variables
     [SerializeField] private float xWallForce = 15f;
@@ -62,20 +67,6 @@ public class Player : MonoBehaviour
         rb.gravityScale = 5f;
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        if (rb.bodyType.ToString() == "Dynamic")
-        {
-            EnableJumping();
-            EnableCondtionalWallSlideAndWallJump();
-            EnableConditionalDash();
-
-            if (dirX != 0)
-                FaceDirectionOfMovement();
-        }
-    }
-
     void FixedUpdate()
     {
         if (rb.bodyType.ToString() == "Dynamic")
@@ -88,13 +79,65 @@ public class Player : MonoBehaviour
         }
     }
 
+    // Update is called once per frame
+    void Update()
+    {
+        if (rb.bodyType.ToString() == "Dynamic")
+        {
+            EnableJumping();
+            EnableCondtionalWallSlideAndWallJump();
+            EnableConditionalDash();
+            FaceDirectionOfMovement();
+        }
+
+        // Update UI Texts
+        controllerGuides.text = "";
+
+        if (doubleJump)
+            controllerGuides.text += "Double Jump (Space 2x): ON <space=5em>";
+        else
+            controllerGuides.text += "Double Jump (Space 2x): OFF <space=5em>";
+
+        if (sprint)
+            controllerGuides.text += "Sprint (RightCtrl): ON <space=5em>";
+        else
+            controllerGuides.text += "Sprint (RightCtrl): OFF <space=5em>";
+
+        if (dash)
+            controllerGuides.text += "Dash (LeftAlt): ON <space=5em>";
+        else
+            controllerGuides.text += "Dash (LeftAlt): OFF <space=5em>";
+
+        if (jetPack)
+            controllerGuides.text += "JetPack (LeftShift): ON <space=5em>";
+        else
+            controllerGuides.text += "JetPack (LeftShift): OFF <space=5em>";
+
+        if (antigravity)
+        {
+            controllerGuides.text += "Antigravity: ON <space=5em>";
+            wallJump = false;        // For now, no wall jumping while antigravity is on
+        }
+            
+        else
+            controllerGuides.text += "Antigravity: OFF <space=5em>";
+
+        if (ghost)
+            controllerGuides.text += "Ghost (LeftCtrl): ON <space=5em>";
+        else
+            controllerGuides.text += "Ghost (LeftCtrl): OFF <space=5em>";
+
+        if (wallJump)
+            controllerGuides.text += "WallJump (Space): ON <space=5em>";
+        else
+            controllerGuides.text += "WallJump (Space): OFF <space=5em>";
+    }
+
     // Face direction of movement
     private void FaceDirectionOfMovement()
     {
-        float direction = 1;
-        direction = dirX != 0 ? dirX : direction;
-
-        transform.localScale = defaultScale * direction;
+        if (dirX != 0)
+            transform.localScale = defaultScale * dirX;
     }
 
     // Allow horizontal movement
@@ -161,6 +204,7 @@ public class Player : MonoBehaviour
         if (dash)
         {
             float dashDistance = ObstacleDistance();
+            
             if (Input.GetKeyDown(KeyCode.LeftAlt))
             {
                 if (dash_direction == -1)
@@ -193,12 +237,12 @@ public class Player : MonoBehaviour
         if (ghost && Input.GetKey(KeyCode.LeftControl))
         {
             sprite.color = new Color(sprite.color.r, sprite.color.g, sprite.color.b, 0.5f);
-            Physics2D.IgnoreLayerCollision(0, LayerMask.NameToLayer("Wall"));
+            Physics2D.IgnoreLayerCollision(0, LayerMask.NameToLayer("WorldObject"));
         }
         else
         {
             sprite.color = new Color(sprite.color.r, sprite.color.g, sprite.color.b, 1f);
-            Physics2D.IgnoreLayerCollision(0, LayerMask.NameToLayer("Wall"), false);
+            Physics2D.IgnoreLayerCollision(0, LayerMask.NameToLayer("WorldObject"), false);
         }
     }
 
@@ -207,7 +251,7 @@ public class Player : MonoBehaviour
         if (wallJump)
         {
             // for wall sliding
-            isTouchingFront = Physics2D.OverlapCircle(frontCheck.position, checkRadius, wall);
+            isTouchingFront = Physics2D.OverlapCircle(frontCheck.position, checkRadius, wallLayer);
             if (isTouchingFront && !IsGrounded() && dirX != 0)
                 wallSliding = true;
             else
@@ -239,15 +283,13 @@ public class Player : MonoBehaviour
 
     private float ObstacleDistance()
     {
-        float rayLength = 5f;
-
         // Update dash_direction if dirX is not 0
         dash_direction = dirX != 0? (int)dirX : dash_direction;
 
-        // Remeber left and right rays
-        RaycastHit2D leftRay = Physics2D.BoxCast(coll.bounds.center, coll.bounds.size, 0f, Vector2.left, rayLength, wall);
-        RaycastHit2D rightRay = Physics2D.BoxCast(coll.bounds.center, coll.bounds.size, 0f, Vector2.right, rayLength, wall);
-
+        // Detect nearest object to left ray. ~ flips the layermask i.e. selects all except
+        RaycastHit2D leftRay = Physics2D.BoxCast(coll.bounds.center, coll.bounds.size, 0f, Vector2.left, rayLength, ~(1<<LayerMask.NameToLayer("Default")));
+        RaycastHit2D rightRay = Physics2D.BoxCast(coll.bounds.center, coll.bounds.size, 0f, Vector2.right, rayLength, ~(1<<LayerMask.NameToLayer("Default")));
+        
         // dash_direction is either -1 or 1, left or right
         RaycastHit2D raycastHit = dash_direction == -1 ? leftRay : rightRay;
 
@@ -265,13 +307,17 @@ public class Player : MonoBehaviour
 
         if (raycastHit.collider != null)
         {
-            Vector3 objectCenter = raycastHit.collider.bounds.center;
-            Vector3 objectExtents = raycastHit.collider.bounds.extents;
-            float edge = dash_direction == -1 ? objectCenter.x + objectExtents.x : objectCenter.x - objectExtents.x;
+            float edge = raycastHit.point.x;
             float playerFront = dash_direction == -1 ? coll.bounds.center.x - coll.bounds.extents.x : coll.bounds.center.x + coll.bounds.extents.x;
             float distanceToObject = Math.Abs(playerFront - edge);
 
+            rayLength = distanceToObject;
+
             return distanceToObject;
+        }
+        else
+        {
+            rayLength = 5f;
         }
 
         return rayLength;
@@ -283,12 +329,23 @@ public class Player : MonoBehaviour
             extraJumps = 1;
     }
 
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.gameObject.layer == LayerMask.NameToLayer("Ground"))
+            extraJumps = 1;
+    }
+
     // Checks to see if the Player's Collider is touching the Ground Layer
     private bool IsGrounded()
     {
-        bool down = Physics2D.BoxCast(coll.bounds.center, coll.bounds.size, 0f, Vector2.down, .1f, jumpableGround);
-        bool up = Physics2D.BoxCast(coll.bounds.center, coll.bounds.size, 0f, Vector2.up, .1f, jumpableGround);
+        //LayerMask grounds = (1 << ground) | (1 << ceiling);         // Fancy code for selecting 2 layers 
+        bool grounded = Physics2D.BoxCast(coll.bounds.center, coll.bounds.size, 0f, Vector2.down, .1f, ground);
         
-        return up || down;
+        if (antigravity)
+        {
+            return Physics2D.BoxCast(coll.bounds.center, coll.bounds.size, 0f, Vector2.up, .1f, ground);
+        }
+        
+        return grounded;
     }
 }
