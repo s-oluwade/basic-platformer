@@ -7,6 +7,7 @@ TagManager:
   - Enemy
   - VirtualCamera
   - InnerWall
+  - Teleporter
   layers:
   - Default
   - TransparentFX
@@ -55,4 +56,13 @@ TagManager:
     locked: 0
   - name: Front
     uniqueID: 3405993979
+    locked: 0
+  - name: Foreground
+    uniqueID: 3053389251
+    locked: 0
+  - name: Background
+    uniqueID: 3025057961
+    locked: 0
+  - name: Midground
+    uniqueID: 108699605
     locked: 0

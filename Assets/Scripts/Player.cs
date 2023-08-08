@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.InputSystem;
 
 public class Player : MonoBehaviour
 {
@@ -23,6 +24,9 @@ public class Player : MonoBehaviour
     [SerializeField] private float moveSpeed = 10f;
     [SerializeField] private float jumpForce = 15f;
     [SerializeField] private TextMeshProUGUI controllerGuides;
+
+    // Defaults
+    
 
     // Constants
     private readonly float defaultMoveSpeed = 10f;      // Must match moveSpeed
@@ -71,7 +75,6 @@ public class Player : MonoBehaviour
     {
         if (rb.bodyType.ToString() == "Dynamic")
         {
-            EnableWalking();
             EnableConditionalSprinting();
             EnableConditionalAntiGravity();
             EnableConditionalJetPack();
@@ -84,7 +87,6 @@ public class Player : MonoBehaviour
     {
         if (rb.bodyType.ToString() == "Dynamic")
         {
-            EnableJumping();
             EnableCondtionalWallSlideAndWallJump();
             EnableConditionalDash();
             FaceDirectionOfMovement();
@@ -118,7 +120,6 @@ public class Player : MonoBehaviour
             controllerGuides.text += "Antigravity: ON <space=5em>";
             wallJump = false;        // For now, no wall jumping while antigravity is on
         }
-            
         else
             controllerGuides.text += "Antigravity: OFF <space=5em>";
 
@@ -137,34 +138,37 @@ public class Player : MonoBehaviour
     private void FaceDirectionOfMovement()
     {
         if (dirX != 0)
-            transform.localScale = defaultScale * dirX;
+            transform.localScale = defaultScale * dirX / Math.Abs(dirX);
     }
 
-    // Allow horizontal movement
-    private void EnableWalking()
+    public void Walk()
     {
         dirX = Input.GetAxisRaw("Horizontal");
-        rb.velocity = new Vector2(dirX * moveSpeed, rb.velocity.y);
+        if (Input.GetKey(KeyCode.Z) || Input.GetButton("X"))
+            rb.velocity = new Vector2(0f, rb.velocity.y);
+        else
+            rb.velocity = new Vector2(dirX * moveSpeed, rb.velocity.y);
     }
-
-    private void EnableJumping()
+    
+    public void Jump(InputAction.CallbackContext context)
     {
-        // Jump
-        if (Input.GetButtonDown("Jump") && IsGrounded())
+        if (!Input.GetKey(KeyCode.Z) && !Input.GetButton("X") && context.performed)
         {
-            rb.velocity = new Vector2(rb.velocity.x, jumpForce);
-        }
-        // Double Jump
-        else if (Input.GetButtonDown("Jump") && doubleJump && extraJumps > 0)
-        {
-            rb.velocity = new Vector2(rb.velocity.x, jumpForce);
-            extraJumps--;
+            if (IsGrounded())
+            {
+                rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+            }
+            else if (doubleJump && extraJumps > 0)
+            {
+                rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+                extraJumps--;
+            }
         }
     }
 
     private void EnableConditionalSprinting()
     {
-        if (sprint && Input.GetKey(KeyCode.RightControl))
+        if (sprint && (Input.GetKey(KeyCode.RightControl) || Input.GetButton("Left Bumper")))
         {
             moveSpeed = defaultMoveSpeed * 1.5f;
         }
@@ -205,7 +209,7 @@ public class Player : MonoBehaviour
         {
             float dashDistance = ObstacleDistance();
             
-            if (Input.GetKeyDown(KeyCode.LeftAlt))
+            if (Input.GetKeyDown(KeyCode.LeftAlt) || Input.GetButtonDown("Right Bumper"))
             {
                 if (dash_direction == -1)
                 {
@@ -225,7 +229,7 @@ public class Player : MonoBehaviour
 
         if (jetPack)
         {
-            if (Input.GetKey(KeyCode.LeftShift))
+            if (Input.GetKey(KeyCode.LeftShift) || Input.GetButton("B"))
             {
                 rb.AddForce(transform.up * thrust);
             }
@@ -234,7 +238,7 @@ public class Player : MonoBehaviour
 
     private void EnableConditionalGhost()
     {
-        if (ghost && Input.GetKey(KeyCode.LeftControl))
+        if (ghost && (Input.GetKey(KeyCode.LeftControl) || Input.GetButton("Y")))
         {
             sprite.color = new Color(sprite.color.r, sprite.color.g, sprite.color.b, 0.5f);
             Physics2D.IgnoreLayerCollision(0, LayerMask.NameToLayer("WorldObject"));
@@ -284,7 +288,7 @@ public class Player : MonoBehaviour
     private float ObstacleDistance()
     {
         // Update dash_direction if dirX is not 0
-        dash_direction = dirX != 0? (int)dirX : dash_direction;
+        dash_direction = dirX != 0f? (int) (dirX / Math.Abs(dirX)) : dash_direction;
 
         // Detect nearest object to left ray. ~ flips the layermask i.e. selects all except
         RaycastHit2D leftRay = Physics2D.BoxCast(coll.bounds.center, coll.bounds.size, 0f, Vector2.left, rayLength, ~(1<<LayerMask.NameToLayer("Default")));
