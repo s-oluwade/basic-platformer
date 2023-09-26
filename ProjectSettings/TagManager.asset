@@ -3,15 +3,33 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - Enemy
+  - VirtualCamera
+  - InnerWall
+  - Teleporter
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - Ground
+  - WorldObject
   - Water
   - UI
+  - Ground
   - Wall
+  - Level
+  - Enemy
+  - Usable
+  - Interactable
+  - IgnorePlayer
+  - Player
+  - Cameras
+  - LitSprites
+  - Destructable
+  - EnemyWeapon
+  - BossWeakPoint
+  - Bullet
+  - Ceiling
   - 
   - 
   - 
@@ -21,23 +39,30 @@ TagManager:
   - 
   - 
   - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
+  - PlayerDrop
+  - Platform
   m_SortingLayers:
+  - name: Background
+    uniqueID: 2422021475
+    locked: 0
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: Water
+    uniqueID: 2116099231
+    locked: 0
+  - name: Level
+    uniqueID: 2344118779
+    locked: 0
+  - name: Front
+    uniqueID: 3405993979
+    locked: 0
+  - name: Foreground
+    uniqueID: 3053389251
+    locked: 0
+  - name: Background
+    uniqueID: 3025057961
+    locked: 0
+  - name: Midground
+    uniqueID: 108699605
     locked: 0
