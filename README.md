@@ -1,5 +1,5 @@
 # basic-platformer
-# The barebones of a 2d metroidvania game.
+The barebones of a 2d metroidvania game.
 
 [showcase](https://youtu.be/k6wvS57s0PQ)
 
